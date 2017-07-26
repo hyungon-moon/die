@@ -20,3 +20,4 @@
 !/data/*.pdf
 !/data/*.eps
 .latexrun.db
+*.swp
