@@ -64,11 +64,16 @@ watermark: $(DEPS) ## generate pdf with a watermark
 	@TEXINPUTS="sty:" bin/latexrun $(BTEX) $(MAIN)
 
 spell: ## run a spell check
-	@for i in *.tex fig/*.tex; do bin/aspell.sh $$i; done
+	@for i in *.tex fig/*.tex; do bin/aspell.sh tex $$i; done
 	@for i in *.tex; do bin/double.pl $$i; done
 	@for i in *.tex; do bin/abbrv.pl  $$i; done
 	@bin/hyphens.sh *.tex
 	@pdftotext $(MAIN).pdf /dev/stdout | grep '??'
+	@for i in fig/*.svg; do bin/aspell.sh svg $$i; done
+	@for i in code/*.c; do bin/aspell.sh code $$i; done
+
+bib: all ## print bib used in the paper
+	bibexport latex.out/$(MAIN).aux
 
 clean: ## clean up
 	@bin/latexrun --clean
@@ -80,4 +85,4 @@ distclean: clean ## clean up completely
 abstract.txt: abstract.tex $(MAIN).tex ## generate abstract.txt
 	@bin/mkabstract $(MAIN).tex $< | fmt -w72 > $@
 
-.PHONY: all help FORCE draft clean spell distclean init
+.PHONY: all help FORCE draft clean spell distclean init bib
