@@ -12,6 +12,19 @@ if len(sys.argv) != 3:
 pn_main = sys.argv[1]
 pn_abst = sys.argv[2]
 
+def uppercase_cond(value):
+    if value[0].islower():
+        return value
+    upcond = True
+    for i in range(1,len(value)):
+        if value[i].isupper():
+            upcond = False
+            break
+    if upcond:
+        return value.upper()
+    else:
+        return value
+
 def get_keywords(tex):
     rtn = {}
     tok = re.findall(r"\\newcommand{\\([^}]+)}{(.*)}", tex)
@@ -19,13 +32,17 @@ def get_keywords(tex):
         # clean up v
         v = v.replace("\\mbox{", "")
         v = v.replace("\\textsc{", "")
+        v = v.replace("\\cc{", "")
         v = v.replace("\\xspace", "")
         v = v.replace("}", "")
         v = v.replace("{", "")
         v = v.replace("\\", "")
-        rtn[k] = v
+        if k == "sys":
+            rtn[k] = uppercase_cond(v)
+        else:
+            rtn[k] = v
     return rtn
-    
+
 def get_sys(tex):
     tok = re.findall(r"\\newcommand{\\sys}{\\mbox{\\textsc{([^}]*)}", tex)
     if len(tok) == 0:
@@ -40,10 +57,18 @@ for l in open(pn_abst):
     l = l.strip()
     if l.startswith("%"):
         continue
+    if l.endswith("%"):
+        l = l[:-1]
+
     if "{abstract}" in l:
         continue
+
+    for k, v in kw.items():
+        l = l.replace("\\%s" % k, v)
+
     l = l.replace("\\%", "%")
     l = l.replace("\\emph{", "")
+    l = l.replace("\\cc{", "")
     l = l.replace("{", "")
     l = l.replace("}", "")
     l = l.replace("~", " ")
@@ -71,14 +96,11 @@ for l in open(pn_abst):
     l = l.replace("\\K", " K")
     l = l.replace("\\M", " M")
     l = l.replace("\\T", " T")
+    l = l.replace("\\", "")
 
-    for k, v in kw.items():
-        l = l.replace("\\%s" % k, v)
-    
     if "\\" in l:
         print("WARN: unresolved char in", file=sys.stderr)
         print(" > %s" % l, file=sys.stderr)
-        exit(1)
 
     abstract.append(l)
 

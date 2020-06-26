@@ -22,3 +22,6 @@
 !/data/*.eps
 .latexrun.db
 *.swp
+/_minted-p/
+/p.synctex.gz
+/auto

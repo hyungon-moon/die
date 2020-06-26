@@ -5,22 +5,13 @@ FIGS := $(patsubst %.svg,%.pdf,$(wildcard fig/*.svg))
 ODGS := $(patsubst %.odg,%.pdf,$(wildcard fig/*.odg))
 PLOT := $(patsubst %.gp,%.tex,$(wildcard data/*.gp))
 DEPS := rev.tex code/fmt.tex abstract.txt $(CODE) $(FIGS) $(ODGS) $(PLOT)
-LTEX := --latex-args="-shell-escape"
+LTEX := --latex-args="-synctex=1 -shell-escape"
 BTEX := --bibtex-args="-min-crossrefs=99"
 SHELL:= $(shell echo $$SHELL)
 
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-  INKSCAPE=/Applications/Inkscape.app/Contents/Resources/bin/inkscape
-  SOFFICE=/Applications/LibreOffice.app/Contents/MacOS/soffice
-else
-  INKSCAPE=inkscape
-  SOFFICE=soffice
-endif
-
-
 all: $(DEPS) ## generate a pdf
 	@TEXINPUTS="sty:" bin/latexrun $(LTEX) $(BTEX) $(MAIN)
+	cp latex.out/$(MAIN).synctex.gz .
 
 submit: $(DEPS) ## proposal function
 	@for f in $(wildcard submit-*.tex); do \
@@ -40,20 +31,22 @@ rev.tex: FORCE
 	   "$(shell git log -1 --format='%ci' HEAD)" > $@
 
 code/%.tex: code/% ## build highlighted tex code from source code
-	pygmentize -P tabsize=4 -P mathescape -f latex $^ | mark.py > $@
+	pygmentize -P tabsize=4 -P mathescape -f latex $^ | bin/mark.py > $@
 
 code/fmt.tex: ## generate color table
 	pygmentize -f latex -S default > $@
 
 fig/%.pdf: fig/%.svg ## generate pdf from svg
-	$(INKSCAPE) --without-gui -f ${CURDIR}/$^ -D -A ${CURDIR}/$@
+	bin/svg2pdf.sh ${CURDIR}/$^ ${CURDIR}/$@
 
 fig/%.pdf: fig/%.odg ## generate pdf from LibreOffice Draw
-	$(SOFFICE) --convert-to pdf $< --outdir $(@D)
-	pdfcrop $@ $@
+	bin/odg2pdf.sh $^ $@
 
 data/%.tex: data/%.gp ## generate plot
 	gnuplot $^
+
+data/%.pdf: data/%.py ## generate plot
+	python3 $^
 
 draft: $(DEPS) ## generate pdf with a draft info
 	echo -e '\\newcommand*{\\DRAFT}{}' >> rev.tex
@@ -78,9 +71,11 @@ bib: all ## print bib used in the paper
 clean: ## clean up
 	@bin/latexrun --clean
 	rm -f abstract.txt
+	rm -f $(MAIN).synctex.gz
 
 distclean: clean ## clean up completely
 	rm -f code/*.tex
+	rm -rf _minted_p
 
 abstract.txt: abstract.tex $(MAIN).tex ## generate abstract.txt
 	@bin/mkabstract $(MAIN).tex $< | fmt -w72 > $@
